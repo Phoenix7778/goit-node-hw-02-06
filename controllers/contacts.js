@@ -1,4 +1,6 @@
-const { Contact } = require("../models/contacts");
+const {
+  ContactModel: { Contact },
+} = require("../models/contacts");
 
 const httpError = (status, message) => {
   const error = new Error(message);
@@ -27,41 +29,38 @@ const handleContact = async (req, res, next, action) => {
   }
 };
 
-const listContacts = async (req, res) => {
+const listContacts = ctrlWrapper(async (req, res) => {
   const result = await Contact.find();
   res.status(200).json(result);
-};
+});
 
-const getContactById = async (req, res) => {
-  await handleContact(req, res, Contact.findById);
-};
+const handleContactById = (action) =>
+  ctrlWrapper(async (req, res) => {
+    await handleContact(req, res, action);
+  });
 
-const addContact = async (req, res) => {
-  await handleContact(req, res, Contact.create);
-};
+const addContact = ctrlWrapper(async (req, res) => {
+  const { _id: owner } = req.user;
+  const { body } = req;
+  const result = await Contact.create({ ...body, owner });
+  res.status(201).json(result);
+});
 
-const removeContact = async (req, res) => {
-  await handleContact(req, res, Contact.findByIdAndDelete);
-  res.status(200).json({ message: "contact deleted" });
-};
+const removeContact = handleContactById(Contact.findByIdAndDelete);
 
-const updateContact = async (req, res) => {
-  await handleContact(req, res, (id, body) =>
-    Contact.findByIdAndUpdate(id, body, { new: true })
-  );
-};
+const updateContact = handleContactById((id, body) =>
+  Contact.findByIdAndUpdate(id, body, { new: true })
+);
 
-const updateStatusContact = async (req, res) => {
-  await handleContact(req, res, (id, body) =>
-    Contact.findByIdAndUpdate(id, body, { new: true })
-  );
-};
+const updateStatusContact = handleContactById((id, body) =>
+  Contact.findByIdAndUpdate(id, body, { new: true })
+);
 
 module.exports = {
-  listContacts: ctrlWrapper(listContacts),
-  getContactById: ctrlWrapper(getContactById),
-  addContact: ctrlWrapper(addContact),
-  removeContact: ctrlWrapper(removeContact),
-  updateContact: ctrlWrapper(updateContact),
-  updateStatusContact: ctrlWrapper(updateStatusContact),
+  listContacts,
+  getContactById: handleContactById(Contact.findById),
+  addContact,
+  removeContact,
+  updateContact,
+  updateStatusContact,
 };
