@@ -1,33 +1,38 @@
 const express = require("express");
 const {
-  isValidId,
   validateBody,
   authenticate,
+  isValidId,
 } = require("../../utils/validator");
+const { upload } = require("../../utils/upload");
 const { schemasUser } = require("../../models/user");
 const { ctrlUsers } = require("../../controllers/users");
 
 const router = express.Router();
 
-router.post(
+const post = (path, ...middlewares) => {
+  router.post(path, ...middlewares, ctrlUsers.register);
+};
+
+const patch = (path, ...middlewares) => {
+  router.patch(path, ...middlewares, ctrlUsers.updateSubscriptionUser);
+};
+
+post(
   "/register",
   validateBody(schemasUser.registerSchema),
-  ctrlUsers.register
+  upload.single("avatar")
 );
+post("/login", validateBody(schemasUser.loginSchema));
+router.post("/logout", authenticate);
+router.get("/current", authenticate);
 
-router.post("/login", validateBody(schemasUser.loginSchema), ctrlUsers.login);
-
-router.use(authenticate);
-
-router.post("/logout", ctrlUsers.logout);
-
-router.get("/current", ctrlUsers.getCurrent);
-
-router.patch(
+patch(
   "/:id/subscription",
+  authenticate,
   isValidId,
-  validateBody(schemasUser.updateSubscriptionSchema),
-  ctrlUsers.updateSubscriptionUser
+  validateBody(schemasUser.updateSubscriptionSchema)
 );
+patch("/avatars", authenticate, upload.single("avatar"));
 
 module.exports = router;
