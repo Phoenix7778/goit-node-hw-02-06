@@ -1,7 +1,12 @@
 const bcrypt = require("bcrypt");
+const path = require("path");
+const fs = require("fs/promises");
 const { User } = require("../models/user");
 const { getToken } = require("../utils/getToken");
 const { createHashPassword } = require("../utils/createHashPassword");
+const { resizeImage } = require("../utils/resizeImage");
+
+const avatarsDir = path.join(__dirname, "../../", "public", "avatars");
 
 const httpError = (status, message) => {
   const error = new Error(message);
@@ -75,10 +80,31 @@ const updateSubscriptionUser = ctrlWrapper(async (req, res) => {
   res.status(200).json(result);
 });
 
+const updateAvatar = ctrlWrapper(async (req, res) => {
+  const { _id } = req.user;
+  const { path: tempUpload, originalname } = req.file;
+
+  resizeImage(tempUpload);
+
+  const filename = `${_id}_${originalname}_${Date.now()}`;
+  const resultUpload = path.join(avatarsDir, filename);
+
+  await fs.rename(tempUpload, resultUpload);
+
+  const avatarURL = path.join("avatars", filename);
+
+  await User.findByIdAndUpdate(_id, { avatarURL });
+
+  res.status(201).json({
+    avatarURL,
+  });
+});
+
 module.exports = {
   getCurrent,
   login,
   logout,
   register,
   updateSubscriptionUser,
+  updateAvatar,
 };
