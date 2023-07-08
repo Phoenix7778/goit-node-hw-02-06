@@ -32,6 +32,14 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+    verify: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+      required: [true, "Verify token is required"],
+    },
   },
   {
     versionKey: false,
@@ -48,25 +56,29 @@ const handleMongooseError = (error, data, next) => {
 
 userSchema.post("save", handleMongooseError);
 
-const userSchemaValidation = Joi.object({
+const userValidationSchema = Joi.object({
   password: Joi.string().required().pattern(passwordRegExp).min(6),
   email: Joi.string().required().pattern(emailRegExp),
 });
 
-const updateSubscriptionSchema = Joi.object({
-  subscription: Joi.string().valid("starter", "pro", "business").required(),
-}).options({
-  messages: {
-    "any.only": "Subscription must be one of [starter, pro, business]",
-  },
+const verifySchema = Joi.object({
+  email: Joi.string().required().pattern(emailRegExp).messages({
+    "any.required": "missing required field email",
+  }),
 });
 
+const updateSubscriptionSchema = Joi.object({
+  subscription: Joi.string()
+    .required()
+    .valid("starter", "pro", "business")
+    .message("Subscription must be one of [starter, pro, business]"),
+});
+
+const User = model("user", userSchema);
+
 module.exports = {
-  User: model("user", userSchema),
-  schemasUser: {
-    userSchema: userSchema,
-    registerSchema: userSchemaValidation,
-    loginSchema: userSchemaValidation,
-    updateSubscriptionSchema: updateSubscriptionSchema,
-  },
+  User,
+  userValidationSchema,
+  verifySchema,
+  updateSubscriptionSchema,
 };

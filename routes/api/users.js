@@ -10,29 +10,26 @@ const { ctrlUsers } = require("../../controllers/users");
 
 const router = express.Router();
 
-const post = (path, ...middlewares) => {
-  router.post(path, ...middlewares, ctrlUsers.register);
-};
-
-const patch = (path, ...middlewares) => {
-  router.patch(path, ...middlewares, ctrlUsers.updateSubscriptionUser);
-};
-
-post(
+router.post(
   "/register",
-  validateBody(schemasUser.registerSchema),
-  upload.single("avatar")
+  [validateBody(schemasUser.registerSchema), upload.single("avatar")],
+  ctrlUsers.register
 );
-post("/login", validateBody(schemasUser.loginSchema));
-router.post("/logout", authenticate);
-router.get("/current", authenticate);
+router.post("/login", [validateBody(schemasUser.loginSchema)], ctrlUsers.login);
+router.post("/logout", authenticate, ctrlUsers.logout);
 
-patch(
+router.get("/verify/:verificationToken", ctrlUsers.verifyEmail);
+router.get("/current", authenticate, ctrlUsers.getCurrent);
+
+router.patch(
   "/:id/subscription",
-  authenticate,
-  isValidId,
-  validateBody(schemasUser.updateSubscriptionSchema)
+  [authenticate, isValidId, validateBody(schemasUser.updateSubscriptionSchema)],
+  ctrlUsers.updateSubscription
 );
-patch("/avatars", authenticate, upload.single("avatar"));
+router.patch(
+  "/avatars",
+  [authenticate, upload.single("avatar")],
+  ctrlUsers.updateAvatar
+);
 
 module.exports = router;
